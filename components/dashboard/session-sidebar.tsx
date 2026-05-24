@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { ChatSession } from "@/lib/agent-events";
 import { DeployIconButton } from "@/components/project-info";
@@ -61,7 +60,7 @@ export function SessionSidebar({
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 p-3">
+      <div className="custom-scroll custom-scroll-visible min-h-0 flex-1 overflow-y-auto p-3">
         <div className="space-y-2">
           {sessions.map((session) => {
             const isActive = session.id === activeSessionId;
@@ -113,7 +112,7 @@ export function SessionSidebar({
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="shrink-0 p-3">
         <DeployIconButton />
