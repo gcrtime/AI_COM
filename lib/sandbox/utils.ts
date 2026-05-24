@@ -6,12 +6,45 @@ import { resolution } from "./tool";
 const NOVNC_PORT = 6080;
 const DISPLAY_ENV = { DISPLAY: ":99" };
 
+function isSandboxNotFoundError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const response = (error as { response?: Response }).response;
+  if (response?.status === 404) {
+    return true;
+  }
+
+  const text =
+    typeof (error as { text?: string }).text === "string"
+      ? (error as { text: string }).text
+      : error instanceof Error
+        ? error.message
+        : "";
+
+  return text.includes("not_found") || text.includes("Sandbox not found");
+}
+
 export const getDesktop = async (id?: string) => {
   try {
     if (id) {
-      const sandbox = await Sandbox.get({ sandboxId: id });
-      if (sandbox.status === "running") {
-        return sandbox;
+      try {
+        const sandbox = await Sandbox.get({ sandboxId: id });
+        if (sandbox.status === "running") {
+          return sandbox;
+        }
+      } catch (error) {
+        if (isSandboxNotFoundError(error)) {
+          console.warn(
+            `Sandbox ${id} not found (expired or from another Vercel project). Creating a new desktop.`,
+          );
+        } else {
+          console.warn(
+            `Could not reconnect to sandbox ${id}. Creating a new desktop.`,
+            error,
+          );
+        }
       }
     }
 
@@ -113,6 +146,9 @@ export const killDesktop = async (id: string) => {
     const sandbox = await Sandbox.get({ sandboxId: id });
     await sandbox.stop();
   } catch (error) {
+    if (isSandboxNotFoundError(error)) {
+      return;
+    }
     console.error("Error killing desktop:", error);
   }
 };

@@ -298,7 +298,7 @@ export function ChatPanel({
   }, [messages, session.events, session.id]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <ChatHeader
         agentStatus={agentStatus}
         isMobile={isMobile}
@@ -310,6 +310,7 @@ export function ChatPanel({
       />
 
       <ScrollArea
+        className="custom-scroll-visible"
         contentClassName="px-6 py-6"
         scrollableNodeProps={{ ref: containerRef }}
       >

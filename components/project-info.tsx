@@ -30,24 +30,6 @@ export const ProjectInfo = () => {
   );
 };
 
-const StyledLink = ({
-  children,
-  href,
-}: {
-  children: React.ReactNode;
-  href: string;
-}) => {
-  return (
-    <Link
-      className="text-blue-500 dark:text-blue-400"
-      href={href}
-      target="_blank"
-    >
-      {children}
-    </Link>
-  );
-};
-
 // const Code = ({ text }: { text: string }) => {
 //   return <code className="">{text}</code>;
 // };

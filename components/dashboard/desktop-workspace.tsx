@@ -36,10 +36,6 @@ function PureDesktopWorkspace({
   const { error, isInitializing, streamUrl } = useSharedDesktopStream();
   const [isSwitchingSession, setIsSwitchingSession] = useState(false);
 
-  if (SANDBOX_UI_DISABLED) {
-    return <DesktopPlaceholder />;
-  }
-
   useEffect(() => {
     setIsSwitchingSession(true);
   }, [sessionId]);
@@ -60,12 +56,16 @@ function PureDesktopWorkspace({
     return () => window.clearTimeout(timeoutId);
   }, [isInitializing, isSwitchingSession, streamUrl]);
 
+  if (SANDBOX_UI_DISABLED) {
+    return <DesktopPlaceholder />;
+  }
+
   if (isInitializing && !streamUrl) {
     return <DesktopWorkspaceSkeleton />;
   }
 
   return (
-    <div className="relative h-full min-h-0">
+    <div className="relative h-full min-h-0 overflow-hidden">
       {isSwitchingSession ? (
         <div className="pointer-events-none absolute inset-0 z-20 flex items-start justify-end p-4">
           <div className="rounded-2xl border border-zinc-200 bg-white/92 px-3 py-2 shadow-sm backdrop-blur">
@@ -79,14 +79,14 @@ function PureDesktopWorkspace({
         </div>
       ) : null}
 
-      <ResizablePanelGroup direction="vertical">
-      <ResizablePanel defaultSize={64} minSize={38}>
+      <ResizablePanelGroup className="h-full min-h-0" direction="vertical">
+      <ResizablePanel className="min-h-0 overflow-hidden" defaultSize={64} minSize={38}>
         <DesktopPanel title={title} />
       </ResizablePanel>
 
       <ResizableHandle withHandle />
 
-      <ResizablePanel defaultSize={36} minSize={24}>
+      <ResizablePanel className="min-h-0 overflow-hidden" defaultSize={36} minSize={24}>
         <ToolInspector
           agentStatus={
             error ? "desktop error" : isInitializing ? "desktop booting" : agentStatus

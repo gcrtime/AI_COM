@@ -32,7 +32,6 @@ import {
   createSession,
   deriveLatestUserPrompt,
   getListedSessions,
-  isSessionListed,
   pruneEmptySessions,
   sanitizeMessagesForStorage,
   SESSION_STORAGE_KEY,
@@ -451,11 +450,6 @@ export default function DashboardPage() {
     [desktopSession.id, setSelectedEventForSession],
   );
 
-  const selectedEvent =
-    activeSession.events.find(
-      (event) => event.id === activeSession.selectedEventId,
-    ) ?? activeSession.events.at(-1) ?? null;
-
   const selectedDesktopEvent =
     desktopSession.events.find(
       (event) => event.id === desktopSession.selectedEventId,
@@ -577,30 +571,36 @@ function DashboardShell({
   );
 
   return (
-    <div className="h-dvh text-zinc-950">
-      <div className="hidden h-full lg:block">
-        <ResizablePanelGroup direction="horizontal">
-          <ResizablePanel className="min-h-0" defaultSize={58} minSize={42}>
+    <div className="h-dvh overflow-hidden text-zinc-950">
+      <div className="hidden h-full min-h-0 overflow-hidden lg:block">
+        <ResizablePanelGroup className="min-h-0" direction="horizontal">
+          <ResizablePanel
+            className="min-h-0 overflow-hidden"
+            defaultSize={58}
+            minSize={42}
+          >
             <div
               className={cn(
-                "grid h-full min-h-0",
+                "grid h-full min-h-0 overflow-hidden",
                 isSidebarCollapsed
                   ? "grid-cols-1"
                   : "grid-cols-[260px_minmax(0,1fr)]",
               )}
             >
               {!isSidebarCollapsed ? (
-                <SessionSidebar
-                  activeSessionId={activeSession.id}
-                  onCollapse={() => setIsSidebarCollapsed(true)}
-                  onCreateSession={createNewSession}
-                  onDeleteSession={deleteSession}
-                  onSelectSession={selectSession}
-                  sessions={listedSessions}
-                />
+                <div className="min-h-0 overflow-hidden">
+                  <SessionSidebar
+                    activeSessionId={activeSession.id}
+                    onCollapse={() => setIsSidebarCollapsed(true)}
+                    onCreateSession={createNewSession}
+                    onDeleteSession={deleteSession}
+                    onSelectSession={selectSession}
+                    sessions={listedSessions}
+                  />
+                </div>
               ) : null}
 
-              <div className="relative flex h-full min-h-0 min-w-0 flex-col">
+              <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
                 <SessionChatStack
                   activeSessionId={activeSession.id}
                   debugAgentStatus={debugAgentStatus}
@@ -625,7 +625,11 @@ function DashboardShell({
 
           <ResizableHandle withHandle />
 
-          <ResizablePanel defaultSize={42} minSize={28}>
+          <ResizablePanel
+            className="min-h-0 overflow-hidden"
+            defaultSize={42}
+            minSize={28}
+          >
             {isSessionHydrated ? (
               <LazyDesktopWorkspace
                 agentStatus={

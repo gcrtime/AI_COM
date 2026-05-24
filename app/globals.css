@@ -208,3 +208,35 @@
 .custom-scroll-dark:hover::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.32);
 }
+
+/*
+ * Hide native scrollbars globally while preserving scroll behavior.
+ * This covers the shared ScrollArea wrapper and Tailwind overflow utilities
+ * already used across the dashboard.
+ */
+.custom-scroll,
+.custom-scroll-visible,
+.custom-scroll-dark,
+.overflow-auto,
+.overflow-x-auto,
+.overflow-y-auto,
+.overflow-scroll,
+.overflow-x-scroll,
+.overflow-y-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.custom-scroll::-webkit-scrollbar,
+.custom-scroll-visible::-webkit-scrollbar,
+.custom-scroll-dark::-webkit-scrollbar,
+.overflow-auto::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
+.overflow-scroll::-webkit-scrollbar,
+.overflow-x-scroll::-webkit-scrollbar,
+.overflow-y-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

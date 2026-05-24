@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { ChatSession } from "@/lib/agent-events";
 import { DeployIconButton } from "@/components/project-info";
@@ -33,8 +34,8 @@ export function SessionSidebar({
   onSelectSession,
 }: SessionSidebarProps) {
   return (
-    <aside className="flex h-full flex-col bg-[var(--surface-sidebar)] shadow-[var(--shadow-soft)]">
-      <div className="px-4 py-5">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden bg-[var(--surface-sidebar)] shadow-[var(--shadow-soft)]">
+      <div className="shrink-0 px-4 py-5">
         <div className="mb-4 flex items-center justify-between gap-2">
           <h2 className="min-w-0 truncate text-xl font-semibold text-zinc-950">
             Workspace
@@ -60,7 +61,7 @@ export function SessionSidebar({
         </Button>
       </div>
 
-      <div className="custom-scroll flex-1 overflow-y-auto p-3">
+      <ScrollArea className="min-h-0 flex-1 p-3">
         <div className="space-y-2">
           {sessions.map((session) => {
             const isActive = session.id === activeSessionId;
@@ -112,9 +113,9 @@ export function SessionSidebar({
             );
           })}
         </div>
-      </div>
+      </ScrollArea>
 
-      <div className="p-3">
+      <div className="shrink-0 p-3">
         <DeployIconButton />
       </div>
     </aside>
