@@ -1,58 +1,60 @@
+Author: guchengrong
+
 # CambioML AI Agent Dashboard
 
-基于 [Vercel ai-sdk-computer-use](https://github.com/vercel-labs/ai-sdk-computer-use) 改造的生产级 AI Agent 控制台。用户通过聊天驱动远程桌面沙箱中的 Claude Agent，完成浏览器操作、命令执行等任务；界面提供双栏 Dashboard、结构化事件管道、多会话历史与移动端适配。
+A production-grade AI Agent console built on [Vercel ai-sdk-computer-use](https://github.com/vercel-labs/ai-sdk-computer-use). Users drive a Claude Agent inside a remote desktop sandbox via chat to perform browser automation, shell commands, and more. The UI provides a dual-pane dashboard, a typed event pipeline, multi-session history, and mobile layouts.
 
-## 功能概览
+## Features
 
-### Dashboard 布局
+### Dashboard layout
 
-- **左栏**：流式聊天、内联 Tool 调用卡片、可折叠 Debug 面板
-- **右栏**：VNC 实时桌面 + Activity 面板（Tool 详情与时间线）
-- **可拖拽分栏**：水平 / 垂直方向均支持 `react-resizable-panels` 调整比例
-- **会话侧栏**：创建、切换、删除会话；支持折叠
+- **Left pane**: Streaming chat, inline tool invocation cards, collapsible debug panel
+- **Right pane**: Live VNC desktop + Activity panel (tool details and timeline)
+- **Resizable split**: Horizontal and vertical layouts via `react-resizable-panels`
+- **Session sidebar**: Create, switch, and delete sessions; collapsible
 
-### Agent 与 Tool
+### Agent and tools
 
-- 模型：**Claude Opus 4.5**（可通过 `ANTHROPIC_BASE_URL` 对接代理）
-- Tool：`computer`（截图、点击、输入、滚动等）+ `bash`（Shell 命令）
-- 聊天内 Tool 卡片展示：**类型、状态、耗时**，以及截图缩略图 / 命令输出
-- 点击 Tool 卡片可在右侧 Activity 面板查看完整结果
+- **Model**: Claude Opus 4.5 (proxy via `ANTHROPIC_BASE_URL` supported)
+- **Tools**: `computer` (screenshot, click, type, scroll, etc.) and `bash` (shell)
+- **Tool cards in chat**: Type, status, duration, plus screenshot thumbnails or command output
+- **Click a tool card** to open full results in the right Activity panel
 
-### 事件管道
+### Event pipeline
 
-所有 Tool 调用经 `lib/agent-events.ts` 统一建模，字段包括：
+All tool calls are normalized in `lib/agent-events.ts`:
 
-| 字段 | 说明 |
-|------|------|
+| Field | Description |
+|-------|-------------|
 | `id` | Tool call ID |
-| `timestamp` | 开始时间 |
-| `type` | 动作类型（bash、screenshot、click…） |
-| `payload` | 结构化参数（判别联合） |
+| `timestamp` | Start time |
+| `type` | Action type (`bash`, `screenshot`, `click`, …) |
+| `payload` | Structured parameters (discriminated union) |
 | `status` | `pending` / `complete` / `error` |
-| `duration` | 执行耗时（ms） |
+| `duration` | Execution time (ms) |
 
-派生状态：按类型计数、Agent 状态（Idle / Thinking / Using tools / Ready / Error）、Debug 时间线。
+Derived state includes per-type counts, agent status (Idle / Thinking / Using tools / Ready / Error), and a debug timeline.
 
-### 多会话与持久化
+### Multi-session persistence
 
-- 每个会话独立保存 messages + events
-- 自动写入 `localStorage`（key: `ai-sdk-dashboard-sessions`）
-- 空会话自动清理；切换会话时保留已 warm 的 Chat 实例
+- Each session stores its own messages and events
+- Auto-saved to `localStorage` (key: `ai-sdk-dashboard-sessions`)
+- Empty sessions are pruned; warmed chat instances are kept when switching sessions
 
-### 移动端（`< 1024px`）
+### Mobile (`< 1024px`)
 
-- 左侧会话列表默认隐藏，左上角按钮抽屉式滑出
-- 沙箱后台自动连接，VNC 默认隐藏；首次 Tool 调用后底部展示桌面面板
-- Quick Actions 在移动端隐藏
+- Session list hidden by default; slide-out drawer from the top-left
+- Sandbox connects in the background; VNC hidden until the first tool call, then shown in a bottom panel
+- Quick Actions hidden on mobile
 
-### 性能
+### Performance
 
-- VNC iframe 通过 `DesktopVncFrame` 独立 memo，仅订阅沙箱 stream context
-- `DesktopWorkspace` 对 events 深比较，避免纯文本流式更新触发右栏重渲染
+- VNC iframe isolated in memoized `DesktopVncFrame`, subscribed only to sandbox stream context
+- `DesktopWorkspace` deep-compares events to avoid right-pane re-renders during text streaming
 
 ---
 
-## 架构
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -72,76 +74,76 @@
         Claude (Anthropic API)            Xvnc + Chrome + websockify
 ```
 
-**数据流简述：**
+**Data flow:**
 
-1. 页面 hydrate 后 `SharedDesktopProvider` 空闲时启动沙箱，获取 VNC `streamUrl`
-2. 用户发送消息 → `useChat` 流式请求 `/api/chat`，携带 `sandboxId`
-3. 服务端 `streamText` 注册 `computer` / `bash` tools，在沙箱内执行
-4. 客户端从 message parts 构建 `AgentEvent[]`，持久化并驱动 UI
+1. After hydrate, `SharedDesktopProvider` starts the sandbox when idle and obtains the VNC `streamUrl`
+2. User sends a message → `useChat` streams to `/api/chat` with `sandboxId`
+3. Server `streamText` registers `computer` / `bash` tools and runs them in the sandbox
+4. Client builds `AgentEvent[]` from message parts, persists them, and drives the UI
 
 ---
 
-## 技术栈
+## Tech stack
 
-| 类别 | 选型 |
-|------|------|
-| 框架 | Next.js 15 (App Router) + React 19 |
+| Category | Choice |
+|----------|--------|
+| Framework | Next.js 15 (App Router) + React 19 |
 | AI | AI SDK (`ai`, `@ai-sdk/react`, `@ai-sdk/anthropic`) |
-| 沙箱 | [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) + 预构建 snapshot |
-| UI | Tailwind CSS 4、shadcn/ui、Motion、Lucide |
-| 状态 | React state + localStorage；事件层 TypeScript 判别联合 |
+| Sandbox | [Vercel Sandbox](https://vercel.com/docs/vercel-sandbox) + prebuilt snapshot |
+| UI | Tailwind CSS 4, shadcn/ui, Motion, Lucide |
+| State | React state + localStorage; typed discriminated unions for events |
 
 ---
 
-## 项目结构
+## Project structure
 
 ```
 app/
-  page.tsx                 # Dashboard 主布局（桌面双栏 + 移动布局）
-  api/chat/route.ts        # 流式 Chat API + Tool 注册
+  page.tsx                 # Main dashboard (desktop dual-pane + mobile)
+  api/chat/route.ts        # Streaming chat API + tool registration
   api/kill-desktop/route.ts
 
 components/
   dashboard/
-    chat-panel.tsx         # 聊天、Debug、输入框
-    session-sidebar.tsx    # 会话列表
-    session-chat-stack.tsx # 多会话 Chat 保活
-    desktop-workspace.tsx  # 右栏 VNC + Activity
-    desktop-vnc-frame.tsx  # VNC iframe（memo 隔离）
-    tool-inspector.tsx     # Activity 时间线 + 详情
-    debug-panel.tsx        # 可折叠 Debug
+    chat-panel.tsx         # Chat, debug, input
+    session-sidebar.tsx    # Session list
+    session-chat-stack.tsx # Multi-session chat keep-alive
+    desktop-workspace.tsx  # Right pane VNC + Activity
+    desktop-vnc-frame.tsx  # VNC iframe (memo isolation)
+    tool-inspector.tsx     # Activity timeline + details
+    debug-panel.tsx        # Collapsible debug
     shared-desktop-provider.tsx
     mobile-session-drawer.tsx
     mobile-desktop-panel.tsx
-  message.tsx              # 消息与 Tool 卡片渲染
+  message.tsx              # Messages and tool card rendering
   tool-invocation-status.tsx
 
 lib/
-  agent-events.ts          # 事件管道 + 会话类型 + buildAgentEvents
-  agent-status.ts          # Agent 状态推导
-  tool-invocation-state.ts # Tool 视觉状态
-  session-storage.ts       # localStorage 读写与迁移
-  sandbox/                 # 沙箱创建、Tool 实现
-  anthropic.ts             # Anthropic legacy provider（支持 ANTHROPIC_BASE_URL）
+  agent-events.ts          # Event pipeline + session types + buildAgentEvents
+  agent-status.ts          # Agent status derivation
+  tool-invocation-state.ts # Tool visual state
+  session-storage.ts       # localStorage read/write and migration
+  sandbox/                 # Sandbox creation and tool implementations
+  anthropic.ts             # Anthropic legacy provider (ANTHROPIC_BASE_URL)
 ```
 
 ---
 
-## 快速开始
+## Quick start
 
-### 前置条件
+### Prerequisites
 
 - Node.js 18+
-- [Vercel](https://vercel.com) 账号（Sandbox 权限）
-- [Anthropic API Key](https://console.anthropic.com/)（或兼容 Anthropic Messages API 的代理）
+- [Vercel](https://vercel.com) account with Sandbox access
+- [Anthropic API key](https://console.anthropic.com/) (or a proxy compatible with the Anthropic Messages API)
 
-### 1. 安装依赖
+### 1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2. 配置 Vercel 凭证
+### 2. Configure Vercel credentials
 
 ```bash
 pnpm install -g vercel
@@ -149,7 +151,7 @@ vercel link
 vercel env pull
 ```
 
-会在 `.env.local` 中写入 `VERCEL_OIDC_TOKEN`。也可手动配置：
+This writes `VERCEL_OIDC_TOKEN` to `.env.local`. You can also set manually:
 
 ```env
 VERCEL_TOKEN=...
@@ -157,37 +159,37 @@ VERCEL_TEAM_ID=...
 VERCEL_PROJECT_ID=...
 ```
 
-### 3. 创建 Sandbox Snapshot
+### 3. Create a sandbox snapshot
 
-Snapshot 预装 Xvnc、Chrome、openbox、noVNC、xdotool、ImageMagick，冷启动约数秒。
+The snapshot includes Xvnc, Chrome, openbox, noVNC, xdotool, and ImageMagick for cold starts in a few seconds.
 
 ```bash
 npx tsx lib/sandbox/create-snapshot.ts
 ```
 
-完成后将输出的 ID 写入环境变量（约 10 分钟）：
+Copy the printed ID into your environment (valid ~10 minutes):
 
 ```env
 SANDBOX_SNAPSHOT_ID=snap_xxxxxxxxxxxxx
 ```
 
-### 4. 配置模型 API
+### 4. Configure the model API
 
 ```env
 ANTHROPIC_API_KEY=sk-ant-...
-# 可选：Anthropic 兼容代理（需支持 /v1/messages）
+# Optional: Anthropic-compatible proxy (must support /v1/messages)
 ANTHROPIC_BASE_URL=https://your-proxy.example/v1
 ```
 
-### 5. 启动开发服务器
+### 5. Run the dev server
 
 ```bash
 pnpm dev
 ```
 
-打开 [http://localhost:3000](http://localhost:3000)。
+Open [http://localhost:3000](http://localhost:3000).
 
-### 生产构建
+### Production build
 
 ```bash
 pnpm build
@@ -196,46 +198,46 @@ pnpm start
 
 ---
 
-## 环境变量
+## Environment variables
 
-| 变量 | 必填 | 说明 |
-|------|------|------|
-| `ANTHROPIC_API_KEY` | 是 | Anthropic（或代理）API Key |
-| `SANDBOX_SNAPSHOT_ID` | 是 | 桌面环境 Snapshot ID |
-| `VERCEL_OIDC_TOKEN` | 二选一 | `vercel env pull` 自动写入 |
-| `VERCEL_TOKEN` | 二选一 | 个人 Access Token |
-| `VERCEL_TEAM_ID` | 配合 TOKEN | Vercel Team ID |
-| `VERCEL_PROJECT_ID` | 配合 TOKEN | Vercel Project ID |
-| `ANTHROPIC_BASE_URL` | 否 | 自定义 API Base URL（代理场景） |
-
----
-
-## 响应式断点
-
-| 视口 | 布局 |
-|------|------|
-| `≥ lg` (1024px) | 双栏 Dashboard + 固定/可折叠侧栏 |
-| `< lg` | 单栏聊天 + 抽屉会话菜单 + 按需底部 VNC |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | Yes | Anthropic (or proxy) API key |
+| `SANDBOX_SNAPSHOT_ID` | Yes | Desktop environment snapshot ID |
+| `VERCEL_OIDC_TOKEN` | One of | Written by `vercel env pull` |
+| `VERCEL_TOKEN` | One of | Personal access token |
+| `VERCEL_TEAM_ID` | With TOKEN | Vercel team ID |
+| `VERCEL_PROJECT_ID` | With TOKEN | Vercel project ID |
+| `ANTHROPIC_BASE_URL` | No | Custom API base URL (proxy) |
 
 ---
 
-## 开发说明
+## Responsive breakpoints
 
-### 禁用沙箱 UI
+| Viewport | Layout |
+|----------|--------|
+| `≥ lg` (1024px) | Dual-pane dashboard + fixed/collapsible sidebar |
+| `< lg` | Single-pane chat + drawer sessions + on-demand bottom VNC |
 
-仅调试聊天 / 事件 UI 时，可在 `lib/feature-flags.ts` 设置：
+---
+
+## Development notes
+
+### Disable sandbox UI
+
+To debug chat/events only, set in `lib/feature-flags.ts`:
 
 ```ts
 export const SANDBOX_UI_DISABLED = true;
 ```
 
-### 会话存储版本
+### Session storage version
 
-`SESSION_STORAGE_VERSION` 变更时会通过 `migratePersistedSessionState` 迁移旧数据。当前版本：`2`。
+When `SESSION_STORAGE_VERSION` changes, `migratePersistedSessionState` migrates old data. Current version: `2`.
 
-### 模型切换
+### Switching models
 
-修改 `app/api/chat/route.ts` 中的模型 ID，需确保所用 API 分组支持对应模型及 computer use tools。
+Edit the model ID in `app/api/chat/route.ts`. Ensure your API tier supports the model and computer-use tools.
 
 ### Lint
 
@@ -245,20 +247,39 @@ pnpm lint
 
 ---
 
-## 与上游 Demo 的主要差异
+## Differences from the upstream demo
 
-| 能力 | 上游 Demo | 本项目 |
-|------|-----------|--------|
-| 布局 | 单页 Chat + VNC | 双栏 Dashboard + 会话侧栏 |
-| 事件系统 | 无 | 完整 typed event pipeline |
-| 多会话 | 无 | localStorage 持久化 |
-| Debug | 无 | 可折叠事件 / 状态面板 |
-| Tool UI | 基础展示 | 状态色、耗时、右侧详情联动 |
-| 移动端 | 无 | 抽屉菜单 + 按需 VNC |
-| VNC 性能 | — | iframe memo 隔离 |
+| Capability | Upstream demo | This project |
+|------------|---------------|--------------|
+| Layout | Single-page chat + VNC | Dual-pane dashboard + session sidebar |
+| Events | None | Full typed event pipeline |
+| Multi-session | None | localStorage persistence |
+| Debug | None | Collapsible events/status panel |
+| Tool UI | Basic | Status colors, duration, right-pane detail sync |
+| Mobile | None | Drawer menu + on-demand VNC |
+| VNC performance | — | Memo-isolated iframe |
 
 ---
 
-## 许可证
+## Collaborators
 
-继承上游 [ai-sdk-computer-use](https://github.com/vercel-labs/ai-sdk-computer-use) 项目许可。部署与 API 使用须遵守 Anthropic、Vercel 各自服务条款。
+This repository is private. Collaborators with access:
+
+- `lingjiekong`
+- `ghamry03`
+- `goldmermaid`
+- `EnergentAI`
+
+To invite additional collaborators (repo admin):
+
+```bash
+gh api repos/gcrtime/AI_COM/collaborators/{username} -X PUT -f permission=push
+```
+
+Or use **Settings → Collaborators** on GitHub.
+
+---
+
+## License
+
+Inherits licensing from upstream [ai-sdk-computer-use](https://github.com/vercel-labs/ai-sdk-computer-use). Deployment and API usage must comply with Anthropic and Vercel terms of service.
