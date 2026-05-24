@@ -1,0 +1,113 @@
+## Requirement
+
+**Extend a computer use demo into a production-quality AI agent dashboard**
+
+1. **Start from the existing computer use stack:** https://github.com/vercel-labs/ai-sdk-computer-use
+2. Build a two-panel dashboard interface:
+    - Left panel: Chat with inline tool call visualizations + collapsible debug panel
+    - Right panel: VNC viewer + expanded tool call details
+    - Horizontally resizable panels
+3. Implement an event pipeline with typed state management:
+    - Capture all tool calls with id, timestamp, type, payload, status, duration
+    - Derived state: event counts per action type, agent status
+    - Debug panel to visualize the event store
+4. Add chat history with multiple sessions:
+    - Create, switch, and delete sessions
+    - Persist to localStorage
+5. Follow TypeScript best practices (no `any`, discriminated unions)
+6. Ensure VNC component does not re-render on chat updates
+
+**Bonus:** Mobile-responsive layout
+
+
+
+
+
+
+
+   ## Detailed Requirements
+
+### UI/UX Requirements
+
+### 1. Two-Panel Layout
+
+Reorganize the interface into a two-panel layout:
+
+**Left Panel:**
+
+- Chat interface with streaming messages
+- Inline tool call visualizations
+- Collapsible debug/event panel at the bottom
+
+**Right Panel:**
+
+- VNC viewer (existing functionality, must remain working)
+- Expanded tool call details (when a tool call is clicked from the left panel)
+
+**Layout Specifications:**
+
+- Panels must be horizontally resizable
+- Must support desktop and tablet viewports
+- Maintain visual hierarchy and usability
+
+
+### 2. Tool Call Visualization
+
+Render tool calls as interactive UI elements within the chat:
+
+- Display for each tool call: type, status, duration
+- Render results appropriately by type:
+    - **Screenshots:** Thumbnail in chat, click to view full-size in right panel
+    - **Bash commands:** Show command and output
+    - **Browser actions:** Show action type and target element
+- Clear visual states: pending (loading), complete (success), error (failed)
+- Clickable: Selecting a tool call shows expanded details in the right panel
+
+### 3. Event Pipeline & State Management
+
+Build a structured event system to capture and manage all agent activity:
+
+**Event Store:**
+
+- Capture every tool call and VM action
+- Each event must include: `id`, `timestamp`, `type`, `payload`, `status` (pending/complete/error), `duration`
+- Use TypeScript discriminated unions for different event types
+
+**Derived State:**
+
+- Ordered list of all events (chronological)
+- Counts per action type (screenshot, click, type, bash, etc.)
+- Current agent status (idle, thinking, executing)
+
+**Debug Panel:**
+
+- Collapsible panel showing the event store
+- Display event counts and timeline
+- Useful for debugging and understanding agent behavior
+### 4. React Performance
+
+- **Critical:** The VNC component must NOT re-render when chat messages update
+- Use appropriate memoization strategies
+- Clean component boundaries to prevent unnecessary re-renders
+
+### 5. TypeScript Standards
+
+- No `any` types
+- Use discriminated unions for event types
+- Proper typing for all props, state, and API responses
+### Backend Integration
+
+### 6. Streaming & API Integration
+
+- Maintain existing streaming functionality
+- Properly handle the AI SDK's message and tool invocation types
+- Graceful error handling for API failures
+- Handle tool call lifecycle: initiated → executing → completed/failed
+
+### 7. Chat History & Multiple Sessions
+
+- Create, switch between, and delete chat sessions
+- Persist chat history to localStorage
+- Display session list in the UI (sidebar or similar)
+- Each session maintains its own message and event history
+- Note: The E2B desktop sandbox is ephemeral - a new VM starts each session
