@@ -36,6 +36,8 @@ const IDLE_STREAM: SharedDesktopStream = {
   streamUrl: null,
 };
 
+const DESKTOP_HEALTH_CHECK_INTERVAL_MS = 15_000;
+
 const SharedSandboxIdContext = createContext<string | null>(null);
 const SharedDesktopStreamContext =
   createContext<SharedDesktopStream>(IDLE_STREAM);
@@ -82,6 +84,7 @@ export function SharedDesktopProvider({
   const [sandboxId, setSandboxId] = useState<string | null>(null);
   const [stream, setStream] = useState<SharedDesktopStream>(IDLE_STREAM);
   const inFlightRef = useRef(false);
+  const repairInFlightRef = useRef(false);
   const activeSessionRef = useRef(activeSession);
   const currentSessionIdRef = useRef<string | null>(null);
   const sandboxIdRef = useRef<string | null>(null);
@@ -232,6 +235,68 @@ export function SharedDesktopProvider({
     [onDesktopEvent, onSandboxIdReady],
   );
 
+  const refreshDesktopConnection = useCallback(async () => {
+    if (
+      SANDBOX_UI_DISABLED ||
+      inFlightRef.current ||
+      repairInFlightRef.current
+    ) {
+      return;
+    }
+
+    const session = activeSessionRef.current;
+    const currentSandboxId = sandboxIdRef.current ?? session.sandboxId ?? null;
+    const currentStreamUrl = streamRef.current.streamUrl;
+
+    if (
+      !currentSandboxId ||
+      !currentStreamUrl ||
+      streamRef.current.isInitializing
+    ) {
+      return;
+    }
+
+    repairInFlightRef.current = true;
+
+    try {
+      const { id, streamUrl } = await getDesktopURL(currentSandboxId);
+
+      if (id === currentSandboxId && streamUrl === currentStreamUrl) {
+        return;
+      }
+
+      streamCacheRef.current.set(session.id, { sandboxId: id, streamUrl });
+      onSandboxIdReady(session.id, id);
+      onDesktopEvent(
+        session.id,
+        createDesktopLifecycleEvent({
+          previousSandboxId: currentSandboxId,
+          sandboxId: id,
+          sessionId: session.id,
+          type: "desktop_connect",
+        }),
+      );
+
+      if (activeSessionRef.current.id !== session.id) {
+        return;
+      }
+
+      currentSessionIdRef.current = session.id;
+      startTransition(() => {
+        setSandboxId(id);
+        setStream({
+          error: null,
+          isInitializing: false,
+          streamUrl,
+        });
+      });
+    } catch (error) {
+      console.warn("Failed to refresh desktop connection", error);
+    } finally {
+      repairInFlightRef.current = false;
+    }
+  }, [onDesktopEvent, onSandboxIdReady]);
+
   useEffect(() => {
     if (SANDBOX_UI_DISABLED || !isSessionHydrated) {
       return;
@@ -243,6 +308,36 @@ export function SharedDesktopProvider({
 
     return cancelIdle;
   }, [activeSession.id, activeSession.sandboxId, ensureDesktop, isSessionHydrated]);
+
+  useEffect(() => {
+    if (SANDBOX_UI_DISABLED || !isSessionHydrated) {
+      return;
+    }
+
+    const runHealthCheck = () => {
+      void refreshDesktopConnection();
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        runHealthCheck();
+      }
+    };
+
+    const intervalId = window.setInterval(
+      runHealthCheck,
+      DESKTOP_HEALTH_CHECK_INTERVAL_MS,
+    );
+
+    window.addEventListener("focus", runHealthCheck);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", runHealthCheck);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [isSessionHydrated, refreshDesktopConnection]);
 
   useEffect(() => {
     const validSessionIds = new Set(sessions.map((session) => session.id));

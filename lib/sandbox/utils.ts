@@ -4,6 +4,7 @@ import { Sandbox } from "@vercel/sandbox";
 import { resolution } from "./tool";
 
 const NOVNC_PORT = 6080;
+const DESKTOP_TIMEOUT_MS = 30 * 60 * 1000;
 const DISPLAY_ENV = { DISPLAY: ":99" };
 
 function isSandboxNotFoundError(error: unknown) {
@@ -53,7 +54,7 @@ export const getDesktop = async (id?: string) => {
         type: "snapshot",
         snapshotId: process.env.SANDBOX_SNAPSHOT_ID!,
       },
-      timeout: 300000,
+      timeout: DESKTOP_TIMEOUT_MS,
       ports: [NOVNC_PORT],
     });
 
